@@ -31,6 +31,8 @@ labels_data = get_label_info(location=cfg.cfg['run']['location'],
 # Create Data Inventory
 logging.info("Building Dataset Inventory")
 dataset_inventory = DatasetInventory()
+#dataset_inventory.create_from_class_directories(cfg.current_exp['paths']['images'])
+#dataset_inventory.create_from_json(cfg.current_paths['inventory'])
 dataset_inventory.create_from_panthera_csv(cfg.current_paths['inventory'])
 dataset_inventory.label_handler.remove_multi_label_records()
 dataset_inventory.log_stats()
@@ -92,7 +94,7 @@ num_to_label_mapper = {
 #tfr_splitter.get_record_numbers_per_file()
 tfr_splitter.all_labels
 n_classes_per_label_type = [len(tfr_splitter.all_labels[x]) for x in
-                            label_types_to_model_clean]
+                            cfg.current_exp['label_types_to_model']]
 
 # Log Label occurrence
 for label_type, labels in tfr_splitter.all_labels.items():
