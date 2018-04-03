@@ -1,5 +1,5 @@
 general:
-  debug: False
+  debug: True
   logging: debug
   logging_to_disk: True
   number_of_gpus: 1
@@ -21,9 +21,9 @@ run:
    # experiment: species
    # add postfix to run directory: run_YYYYMMDD + postfix
    # identifier_postfix: ''
-  # location: cats_and_dogs
-  # experiment: cats_vs_dogs
-  # identifier_postfix: ''
+#   location: cats_and_dogs
+#   experiment: cats_vs_dogs
+#   identifier_postfix: ''
 
 paths:
   root: '/host/data_hdd/'
@@ -67,7 +67,7 @@ locations:
         labels_project: panthera
         labels_version: species
         label_types_to_model:
-          - 'species'
+          - 'primary'
         balanced_sampling_min: False
         balanced_sampling_label_type: 'species'
   west_africa:
@@ -115,7 +115,7 @@ locations:
       color_manipulations: True
     paths:
       master_tfr: 'master.tfrecord'
-      inventory: 'inventory_list.csv'
+      inventory: 'data_inventory.json'
       images: "D:\\Studium_GD\\Zooniverse\\Data\\transfer_learning_project\\images\\4715\\all"
     training_splits:
       train: 0.9
