@@ -149,7 +149,7 @@ def get_label_info(location='panthera', experiment="empty"):
 
     elif location == 'panthera':
         labels_all = {
-          'primary': [
+          'species': [
             'bat', 'hartebeest', 'insect', 'klipspringer', 'hyaenabrown',
             'domesticanimal', 'otter', 'hyaenaspotted', 'MACAQUE', 'aardvark',
             'reedbuck', 'waterbuck', 'bird', 'genet', 'blank', 'porcupine',
@@ -162,7 +162,7 @@ def get_label_info(location='panthera', experiment="empty"):
             'wilddog', 'duikersteenbok', 'HUMAN', 'wildcat']}
 
         keep_labels = {
-          'primary': [
+          'species': [
             'bat', 'hartebeest', 'insect', 'klipspringer', 'hyaenabrown',
             'domesticanimal', 'hyaenaspotted', 'aardvark',
             'reedbuck', 'waterbuck', 'bird', 'genet', 'blank', 'porcupine',
@@ -177,14 +177,14 @@ def get_label_info(location='panthera', experiment="empty"):
         label_mapping = None
 
         if experiment == 'empty':
-            label_mapping = {'primary': {x: 'species' for x in
-                keep_labels['primary'] if x not in ['vehicle', 'blank']}}
-            label_mapping['primary']['vehicle'] = 'vehicle'
-            label_mapping['primary']['blank'] = 'blank'
+            label_mapping = {'species': {x: 'species' for x in
+                keep_labels['species'] if x not in ['vehicle', 'blank']}}
+            label_mapping['species']['vehicle'] = 'vehicle'
+            label_mapping['species']['blank'] = 'blank'
 
         elif experiment == 'species':
-            keep_labels['primary'].remove('vehicle')
-            keep_labels['primary'].remove('blank')
+            keep_labels['species'].remove('vehicle')
+            keep_labels['species'].remove('blank')
 
         else:
             raise NotImplementedError("experiment: %s not implemented" % experiment)

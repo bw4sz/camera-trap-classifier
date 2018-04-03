@@ -90,8 +90,8 @@ class LabelHandler(object):
         """ Keep only the specified labels """
         to_remove = self.get_all_labels()
 
-        logging.info("To Remove: %s:" % to_remove)
-        logging.info("label_Type_labels:%s" % label_type_labels)
+        logging.debug("To Remove initially: %s:" % to_remove)
+        logging.debug("label_Type_labels:%s" % label_type_labels)
 
         for label_type, labels in to_remove.items():
             if label_type not in label_type_labels:
@@ -103,7 +103,7 @@ class LabelHandler(object):
                         labels_to_remove.remove(label)
                 to_remove[label_type] = list(labels_to_remove)
 
-        logging.info("To Remove: %s:" % to_remove)
+        logging.debug("To Remove finally: %s:" % to_remove)
         self.remove_labels(to_remove)
 
     def remove_multi_label_records(self):

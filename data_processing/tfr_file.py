@@ -8,6 +8,7 @@ from data_processing.data_reader import DatasetReader
 from data_processing.data_inventory import DatasetInventory
 from data_processing.label_handler import LabelHandler
 from config.config import logging
+from data_processing.utils import n_records_in_tfr
 
 
 class TFRFile(object):
@@ -38,7 +39,14 @@ class TFRFile(object):
         else:
             assert tfr_decoder is not None, "tfr_decoder cannot be None"
             assert output_labels is not None, "output_labels cannot be None"
-            self._create_data_inventory()
+            self._create_data_inventory(self.file_path)
+
+    def get_record_number(self):
+        """ get number of records """
+        if self.data_inv is not None:
+            return len(self.data_inv.get_all_record_ids())
+        else:
+            return n_records_in_tfr()
 
     def _create_data_inv_path(self):
         """ Create a pre-defined path to the dataset inventory """
@@ -76,7 +84,6 @@ class TFRFile(object):
         logging.info("Labels numeric:%s" % self.labels_are_numeric)
         logging.info("File PAth: %s" % self.file_path)
         logging.info("Looking for lables: %s" % self.output_labels)
-
 
         id_label_dict = OrderedDict()
         with tf.Session() as sess:

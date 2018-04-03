@@ -31,6 +31,8 @@ labels_data = get_label_info(location=cfg.cfg['run']['location'],
 # Create Data Inventory
 logging.info("Building Dataset Inventory")
 dataset_inventory = DatasetInventory()
+#dataset_inventory.create_from_json(cfg.current_paths['inventory'])
+#dataset_inventory.create_from_class_directories('D:\\Studium_GD\\Zooniverse\\Data\\camtrap_trainer\\images\\camera_catalogue\\all\\')
 #dataset_inventory.create_from_class_directories(cfg.current_exp['paths']['images'])
 #dataset_inventory.create_from_json(cfg.current_paths['inventory'])
 dataset_inventory.create_from_panthera_csv(cfg.current_paths['inventory'])
@@ -84,14 +86,14 @@ tfr_splitter.split_tfr_file(
     class_mapping=labels_data['label_mapping'])
 
 # Check numbers
-# tfr_splitter.log_record_numbers_per_file()
+tfr_splitter.log_record_numbers_per_file()
 tfr_n_records = tfr_splitter.get_record_numbers_per_file()
 tfr_splitter.label_to_numeric_mapper
 num_to_label_mapper = {
     k: {v2: k2 for k2, v2 in v.items()}
     for k, v in tfr_splitter.label_to_numeric_mapper.items()}
 
-#tfr_splitter.get_record_numbers_per_file()
+tfr_splitter.get_record_numbers_per_file()
 tfr_splitter.all_labels
 n_classes_per_label_type = [len(tfr_splitter.all_labels[x]) for x in
                             cfg.current_exp['label_types_to_model']]

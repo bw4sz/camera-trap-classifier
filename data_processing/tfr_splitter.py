@@ -31,13 +31,22 @@ class TFRecordSplitter(object):
 
     def log_record_numbers_per_file(self):
         """ print record numbers per file """
-        for f, n in zip(self.split_files, self.split_names):
-            logging.info("File: %s has %s records" % (n, n_records_in_tfr(f)))
+        files = list()
+        for file in self.split_files:
+            new_tfr = TFRFile(file_path=file)
+            files.append(new_tfr)
+        for f, n in zip(files, self.split_names):
+            logging.info("File: %s has %s records" % (n, f.get_record_number()))
 
     def get_record_numbers_per_file(self):
         """ get record numbers per file in dict """
-        return {n: n_records_in_tfr(f) for f, n in
-                zip(self.split_files, self.split_names)}
+        files = list()
+        for file in self.split_files:
+            new_tfr = TFRFile(file_path=file)
+            files.append(new_tfr)
+
+        return {n: f.get_record_number() for f, n in
+                zip(files, self.split_names)}
 
     def _check_and_clean_input(self):
         """ Check and Clean Input """
@@ -141,7 +150,6 @@ class TFRecordSplitter(object):
         # Store all labels
         self.all_labels = data_inv.label_handler.get_all_labels()
         data_inv.log_stats()
-        logging.info("Len data inv: %s" % len(data_inv.data_inventory.keys()))
 
         # Check if all files exist
         if not overwrite_existing_files:
@@ -152,7 +160,11 @@ class TFRecordSplitter(object):
 
         # Convert data inventory back to id_label_dict
         logging.debug("Convert data inv to label dictionary")
-        id_label_dict = self._convert_inventory_to_id_label_dict(data_inv)
+        id_label_dict = self._convert_inventory_to_id_label_dict(data_inv, clean=True)
+
+        id_sample = list(data_inv.data_inventory.keys())[0]
+        logging.debug("inv sample:%s" % data_inv.data_inventory[id_sample])
+        logging.debug("id_label_dict sample: %s" % id_label_dict[id_sample])
 
         # assign each id to a splitting value
         logging.debug("Assigning split Ids")
@@ -173,7 +185,8 @@ class TFRecordSplitter(object):
                  buffer_size=10192,
                  decode_images=False,
                  labels_are_numeric=False,
-                 max_multi_label_number=None)
+                 max_multi_label_number=None,
+                 drop_batch_remainder=False)
 
             # Write Split File
             logging.info("Start writing file %s" % output_file_names[i])
@@ -184,15 +197,22 @@ class TFRecordSplitter(object):
                             logging.debug("Starting to retrieve new batch of data")
                             batch_dict = OrderedDict()
                             batch_data = sess.run(iterator)
+                            id_sample = str(batch_data['id'][0], 'utf-8')
+
                             self._extract_id_labels(batch_dict,
                                                     batch_data,
                                                     self.output_labels_clean)
+                            logging.info("Sample id After labels: %s" % batch_dict[id_sample])
+                            logging.info("id label dict entry: %s" % id_label_dict[id_sample])
+
+                            #logging.info("Batch data AFTER: %s" % batch_data['labels/primary'])
                             # For Each Record Get Split Assignment
                             # and add to current split if match
                             logging.debug("Starting to write new batch of data")
                             for ii, idd in enumerate(batch_dict.keys()):
                                 if (idd in id_to_split_assignments) and \
                                    (id_to_split_assignments[idd] == split):
+                                    #logging.info("Sample record: %s" % id_label_dict[idd])
                                     record_dict = dict()
                                     record_dict['id'] = idd
                                     record_dict['labels'] = id_label_dict[idd]
@@ -209,7 +229,6 @@ class TFRecordSplitter(object):
                             break
 
             # Create TFRecord file and json inventory
-            logging.info("Crate TFRFile")
             tfr_file = TFRFile(file_path=output_file_names[i],
                                tfr_decoder=self.tfr_decoder,
                                output_labels=self.output_labels,
