@@ -148,6 +148,30 @@ class ImportFromPantheraCSV(object):
 
         return data_dict
 
+class ImportFromDataInvExport(object):
+    """ Read Data From Json """
+
+    def read_from_json(self, path_to_json):
+        """ Read Json File """
+        data_dict = self._read_json(path_to_json)
+        return data_dict
+
+    def _read_json(self, path_to_json):
+        """ Read File """
+        assert os.path.exists(path_to_json), \
+            "Path: %s does not exist" % path_to_json
+
+        try:
+            with open(path_to_json, 'r') as f:
+                data_dict = json.load(f)
+        except Exception as e:
+            logging.error('Failed to read Json:\n' + str(e))
+
+        n_records = len(data_dict.keys())
+        logging.info("Read %s records from %s" % (n_records, path_to_json))
+
+        return data_dict
+
 
 class ImportFromJson(object):
     """ Read Data From Json """

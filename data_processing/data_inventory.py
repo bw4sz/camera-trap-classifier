@@ -1,10 +1,12 @@
 """ Class To Create Dataset Inventory """
 import random
 import json
+import copy
 
 from config.config import logging
 from data_processing.data_importer import (
-    ImportFromJson, ImportFromImageDirs, ImportFromPantheraCSV)
+    ImportFromJson, ImportFromImageDirs, ImportFromPantheraCSV,
+    ImportFromDataInvExport)
 from data_processing.label_handler import LabelHandler
 
 
@@ -31,6 +33,22 @@ class DatasetInventory(object):
             new_data_inv[id] = self.data_inventory[id]
 
         self.data_inventory = new_data_inv
+
+    def copy_data_inv_with_only_ids(self, keep_ids):
+        """ Return a copy of the data inventory """
+        keep_ids = set(keep_ids)
+        old_ids = list(self.data_inventory.keys())
+        data_inv_copy = copy.deepcopy(self.data_inventory)
+        for _id in old_ids:
+            if _id not in keep_ids:
+                data_inv_copy.pop(_id, None)
+        new_label_handler = LabelHandler(data_inv_copy)
+
+        new_data_inv = DatasetInventory()
+        new_data_inv.data_inventory = data_inv_copy
+        new_data_inv.label_handler = new_label_handler
+
+        return new_data_inv
 
     def get_all_record_ids(self):
         """ Get all ids of the inventory """
@@ -77,12 +95,38 @@ class DatasetInventory(object):
         self.label_handler = LabelHandler(self.data_inventory)
         self.label_handler.remove_not_all_label_types_present()
 
+    def create_from_data_inv_export(self, json_path):
+        """ Create inventory from json file """
+        json_reader = ImportFromDataInvExport()
+        self.data_inventory = \
+            json_reader.read_from_json(json_path)
+
+        self.label_handler = LabelHandler(self.data_inventory)
+        self.label_handler.remove_not_all_label_types_present()
+
+    def _remove_prefix_in_data_inventory_dict(self, inventory, prefix='labels/'):
+        """ Removes prefix from labels """
+        inventory_to_adjust = copy.deepcopy(inventory)
+
+        for _id, data in inventory.items():
+            for label_type, labels in data['labels'].items():
+                if prefix in label_type:
+                    new_label_type = label_type.split(prefix)[1]
+                    inventory_to_adjust[_id]['labels'][new_label_type] = labels
+                    inventory_to_adjust[_id]['labels'].pop(label_type, None)
+
+        logging.info("Sample before: %s" % inventory[list(inventory.keys())[0]])
+        logging.info("Sample after: %s" % inventory_to_adjust[list(inventory.keys())[0]])
+        return inventory_to_adjust
+
     def export_to_json(self, json_path):
         """ Export Inventory to Json File """
 
-        if self.data_inventory is not None:
+        cleaned_inventory = self._remove_prefix_in_data_inventory_dict(self.data_inventory)
+
+        if cleaned_inventory is not None:
             with open(json_path, 'w') as fp:
-                json.dump(self.data_inventory, fp)
+                json.dump(cleaned_inventory, fp)
 
             logging.info("Data Inventory saved to %s" % json_path)
         else:

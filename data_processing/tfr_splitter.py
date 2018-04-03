@@ -10,6 +10,7 @@ from data_processing.utils import id_to_zero_one, n_records_in_tfr
 from data_processing.data_reader import DatasetReader
 from data_processing.data_inventory import DatasetInventory
 from data_processing.label_handler import LabelHandler
+from data_processing.tfr_file import TFRFile
 
 
 class TFRecordSplitter(object):
@@ -70,11 +71,14 @@ class TFRecordSplitter(object):
                 labels_list = self._convert_to_list(labels)
                 keep_only_labels_clean['labels/' + label_type] = labels_list
 
-            self.keep_only_labels = keep_only_labels_clean
+            self.keep_only_labels_clean = keep_only_labels_clean
 
         if self.remove_label_types is not None:
             self.remove_label_types = \
              ['labels/' + x for x in self.remove_label_types]
+
+        if not isinstance(self.files_to_split, list):
+            self.files_to_split = [self.files_to_split]
 
     def split_tfr_file(self, output_path_main, output_prefix,
                        split_names, split_props, output_labels,
@@ -103,31 +107,15 @@ class TFRecordSplitter(object):
         self.split_files = output_file_names
 
         # get all ids and their labels from the input file
-        dataset_reader = DatasetReader(self.tfr_decoder)
+        assert len(self.files_to_split) == 1, \
+            "More than one file not yet supported"
+        for file_to_split in self.files_to_split:
+            tfr_file = TFRFile(file_path=file_to_split,
+                               tfr_decoder=self.tfr_decoder,
+                               output_labels=self.output_labels,
+                               overwrite_data_inv=overwrite_existing_files)
 
-        iterator = dataset_reader.get_iterator(
-             self.files_to_split, batch_size=2048, is_train=False, n_repeats=1,
-             output_labels=output_labels,
-             buffer_size=10192,
-             decode_images=False,
-             labels_are_numeric=False,
-             max_multi_label_number=None,
-             drop_batch_remainder=False)
-
-        id_label_dict = OrderedDict()
-        with tf.Session() as sess:
-            while True:
-                try:
-                    batch_data = sess.run(iterator)
-                    self._extract_id_labels(id_label_dict,
-                                            batch_data,
-                                            self.output_labels_clean)
-                except tf.errors.OutOfRangeError:
-                    break
-
-        # convert label dict to inventory
-        logging.debug("Converting label dictionary to data inventory")
-        data_inv = self._convert_id_label_dict_to_inventory(id_label_dict)
+            data_inv = tfr_file.data_inv
 
         # keep only specific labels
         if self.keep_only_labels is not None:
@@ -152,6 +140,8 @@ class TFRecordSplitter(object):
 
         # Store all labels
         self.all_labels = data_inv.label_handler.get_all_labels()
+        data_inv.log_stats()
+        logging.info("Len data inv: %s" % len(data_inv.data_inventory.keys()))
 
         # Check if all files exist
         if not overwrite_existing_files:
@@ -172,13 +162,15 @@ class TFRecordSplitter(object):
             balanced_sampling_label_type)
 
         # Write TFrecord files for each split
+        dataset_reader = DatasetReader(self.tfr_decoder)
+
         for i, split in enumerate(self.split_names):
             logging.debug("Reading base file to write: %s" % split)
             iterator = dataset_reader.get_iterator(
-                 self.files_to_split, batch_size=128,
+                 self.files_to_split, batch_size=2048,
                  is_train=False, n_repeats=1,
                  output_labels=output_labels,
-                 buffer_size=64,
+                 buffer_size=10192,
                  decode_images=False,
                  labels_are_numeric=False,
                  max_multi_label_number=None)
@@ -216,6 +208,14 @@ class TFRecordSplitter(object):
                         except tf.errors.OutOfRangeError:
                             break
 
+            # Create TFRecord file and json inventory
+            logging.info("Crate TFRFile")
+            tfr_file = TFRFile(file_path=output_file_names[i],
+                               tfr_decoder=self.tfr_decoder,
+                               output_labels=self.output_labels,
+                               labels_are_numeric=map_labels_to_numerics,
+                               overwrite_data_inv=overwrite_existing_files)
+
     def _extract_id_labels(self, dict_all, data_batch, output_labels):
         """ Extract ids and labels from dataset and add to dict
             {'1234': {'labels/primary': ['cat', 'dog']}}
@@ -240,13 +240,16 @@ class TFRecordSplitter(object):
         data_inv.label_handler = LabelHandler(data_inv.data_inventory)
         return data_inv
 
-    def _convert_inventory_to_id_label_dict(self, inventory):
+    def _convert_inventory_to_id_label_dict(self, inventory, clean=True):
         """ convert dataset inventory to label dict """
         id_label_dict = OrderedDict()
         for record_id, data in inventory.data_inventory.items():
             id_label_dict[record_id] = dict()
             for label_type, labels in data['labels'].items():
-                id_label_dict[record_id][label_type] = labels
+                if clean:
+                    id_label_dict[record_id]['labels/' + label_type] = labels
+                else:
+                    id_label_dict[record_id][label_type] = labels
         return id_label_dict
 
     def _convert_to_list(self, input):
