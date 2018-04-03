@@ -344,7 +344,7 @@ class ImportFromImageDirs(object):
                 image_data = {
                     'images': [root_path + class_dir +
                                os.path.sep + image_name],
-                    'labels': {'primary': [class_dir]}}
+                    'labels': {'species': [class_dir]}}
                 all_images_data[unique_image_id] = image_data
 
         logging.info("Found %s images" % len(all_images_data.keys()))
